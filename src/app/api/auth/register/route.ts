@@ -5,6 +5,7 @@ import { hashPassword, signSession } from "@/lib/auth/password";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 import { AppError } from "@/lib/errors";
 import { handle } from "@/lib/http";
+import { supabaseAuthMessage } from "@/lib/auth/supabase-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { publicUser, readDb, writeDb } from "@/lib/store/local-store";
@@ -25,12 +26,15 @@ export async function POST(request: Request) {
 
     if (isSupabaseConfigured()) {
       const supabase = await createSupabaseServerClient();
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: body.data.email,
         password: body.data.password,
         options: { data: { name: body.data.name } },
       });
-      if (error) throw new AppError("AUTH_005", "Não foi possível criar a conta.", 400, error.message);
+      if (error) throw new AppError("AUTH_005", supabaseAuthMessage(error.message, "Não foi possível criar a conta."), 400, error.message);
+      if (!data.session) {
+        return NextResponse.json({ ok: true, needsConfirmation: true, mode: "supabase" });
+      }
       return NextResponse.json({ ok: true, mode: "supabase" });
     }
 

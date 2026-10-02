@@ -6,12 +6,14 @@ import { useState } from "react";
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError(null);
+    setNotice(null);
     const form = new FormData(event.currentTarget);
     const response = await fetch(mode === "login" ? "/api/auth/login" : "/api/auth/register", {
       method: "POST",
@@ -28,6 +30,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       setError(payload.error?.message ?? "Não foi possível entrar.");
       return;
     }
+    if (payload.needsConfirmation) {
+      setNotice("Conta criada. Confirme o e-mail antes de entrar.");
+      return;
+    }
     router.push("/dashboard");
     router.refresh();
   }
@@ -41,6 +47,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       {mode === "register" ? <Input name="name" label="Nome" required /> : null}
       <Input name="email" label="E-mail" type="email" required />
       <Input name="password" label="Palavra-passe" type="password" required />
+      {notice ? <p className="text-sm text-emerald-200">{notice}</p> : null}
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
       <button type="submit" disabled={pending} className="btn-accent mt-1">
         {pending ? "A guardar..." : mode === "login" ? "Entrar" : "Criar conta"}

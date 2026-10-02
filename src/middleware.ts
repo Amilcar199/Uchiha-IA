@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
   }
 
   const hasLocalSession = Boolean(request.cookies.get("uchiha_session")?.value);
-  const hasSupabaseSession = request.cookies.getAll().some((cookie) => cookie.name.includes("auth-token"));
+  const hasSupabaseSession = request.cookies.getAll().some((cookie) => /auth-token(\.\d+)?$/.test(cookie.name));
   const signedIn = hasLocalSession || hasSupabaseSession;
 
   if (pathname === "/") return NextResponse.next();

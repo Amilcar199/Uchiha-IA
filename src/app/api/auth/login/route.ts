@@ -5,6 +5,7 @@ import { signSession, verifyPassword } from "@/lib/auth/password";
 import { SESSION_COOKIE } from "@/lib/auth/session";
 import { AppError } from "@/lib/errors";
 import { handle } from "@/lib/http";
+import { supabaseAuthMessage } from "@/lib/auth/supabase-errors";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { publicUser, readDb } from "@/lib/store/local-store";
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
         email: body.data.email,
         password: body.data.password,
       });
-      if (error) throw new AppError("AUTH_007", "E-mail ou palavra-passe não conferem.", 401, error.message);
+      if (error) throw new AppError("AUTH_007", supabaseAuthMessage(error.message, "E-mail ou palavra-passe não conferem."), 401, error.message);
       return NextResponse.json({ ok: true, mode: "supabase" });
     }
 
