@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { DiagnosisReport } from "@/components/analysis/diagnosis-report";
 import { OutcomeForm } from "@/components/analysis/outcome-form";
 import { ChartOverlay, MARKING_LABEL } from "@/components/chart/chart-overlay";
 import { DecisionBanner } from "@/components/decisions/decision-banner";
@@ -61,6 +62,23 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
         <DecisionBanner state={record.decision} confidence={record.confidence} />
       </div>
 
+      <DiagnosisReport
+        asset={record.asset}
+        timeframe={record.timeframe}
+        regime={record.marketRegime}
+        cycle={result.context.cycle}
+        trend={result.context.trend}
+        state={record.decision}
+        newsStatus={result.news.status}
+        timingConfirmed={result.timing.confirmed}
+        markings={result.markings}
+        confluences={result.confluences}
+        conflicts={result.conflicts}
+        missing={result.decision.missingConditions}
+        candleCount={candles.length}
+        imageAccepted={result.vision ? result.vision.validation.accepted : candles.length > 0}
+      />
+
       <section className="mt-6 grid gap-4 lg:grid-cols-2">
         <article className="surface p-5">
           <h2 className="text-sm font-medium">Contexto</h2>
@@ -87,7 +105,7 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
       <section className="surface mt-4 p-5">
         <h2 className="text-sm font-medium">Marcações</h2>
         <ul className="mt-3 grid gap-2 text-sm">
-          {result.markings.length === 0 ? <li className="text-[#9aa3b2]">Nenhuma marcação da fase 1.</li> : null}
+          {result.markings.length === 0 ? <li className="text-[#9aa3b2]">Nenhuma marcação confirmada neste print.</li> : null}
           {result.markings.map((marking) => (
             <li key={`${marking.type}-${marking.candleIndex}-${marking.level}`}>
               {MARKING_LABEL[marking.type] ?? marking.type}
