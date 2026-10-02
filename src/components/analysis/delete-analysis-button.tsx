@@ -21,7 +21,7 @@ export function DeleteAnalysisButton({ analysisId }: { analysisId: string }) {
 
   return (
     <div>
-      <button type="button" onClick={onDelete} className="border border-[#2c3444] px-3 py-2 text-sm">
+      <button type="button" onClick={onDelete} className="btn-ghost">
         Apagar análise
       </button>
       {error ? <p className="mt-2 text-sm text-rose-200">{error}</p> : null}

@@ -3,7 +3,7 @@
   "short_name": "UCHIHA",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#10141b",
-  "theme_color": "#10141b",
+  "background_color": "#05070c",
+  "theme_color": "#05070c",
   "lang": "pt-BR"
 }

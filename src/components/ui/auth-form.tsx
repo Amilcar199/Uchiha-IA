@@ -33,16 +33,16 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid w-full max-w-md gap-4 border border-[#2c3444] bg-[#171d27] p-6">
+    <form onSubmit={onSubmit} className="surface grid w-full gap-4 p-6 sm:p-7">
       <div>
-        <p className="text-xs tracking-[0.18em]">UCHIHA IA</p>
-        <h1 className="mt-2 text-2xl font-semibold">{mode === "login" ? "Entrar" : "Criar conta"}</h1>
+        <p className="eyebrow">Conta</p>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">{mode === "login" ? "Entrar" : "Criar conta"}</h2>
       </div>
       {mode === "register" ? <Input name="name" label="Nome" required /> : null}
       <Input name="email" label="E-mail" type="email" required />
       <Input name="password" label="Palavra-passe" type="password" required />
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
-      <button type="submit" disabled={pending} className="bg-[#e7e5e4] px-4 py-2 text-sm font-medium text-[#10141b] disabled:opacity-60">
+      <button type="submit" disabled={pending} className="btn-accent mt-1">
         {pending ? "A guardar..." : mode === "login" ? "Entrar" : "Criar conta"}
       </button>
     </form>
@@ -51,9 +51,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
 
 function Input({ name, label, type = "text", required }: { name: string; label: string; type?: string; required?: boolean }) {
   return (
-    <label className="grid gap-2 text-sm">
+    <label className="grid gap-2 text-sm text-[#d4d4d8]">
       {label}
-      <input name={name} type={type} required={required} className="border border-[#2c3444] bg-[#10141b] px-3 py-2 outline-none" />
+      <input name={name} type={type} required={required} className="field" />
     </label>
   );
 }

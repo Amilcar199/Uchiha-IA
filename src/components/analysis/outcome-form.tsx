@@ -24,23 +24,23 @@ export function OutcomeForm({ analysisId }: { analysisId: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 border border-[#2c3444] p-4">
+    <form onSubmit={onSubmit} className="surface grid gap-3 p-5">
       <h3 className="text-sm font-medium">Resultado posterior</h3>
       <div className="grid gap-3 md:grid-cols-2">
-        <select name="followed" className="border border-[#2c3444] bg-[#10141b] px-3 py-2 text-sm" defaultValue="NAO_SEGUIU">
+        <select name="followed" className="field text-sm" defaultValue="NAO_SEGUIU">
           <option value="SEGUIU">Seguiu</option>
           <option value="NAO_SEGUIU">Não seguiu</option>
         </select>
-        <select name="result" className="border border-[#2c3444] bg-[#10141b] px-3 py-2 text-sm" defaultValue="NO_TRADE">
+        <select name="result" className="field text-sm" defaultValue="NO_TRADE">
           <option value="GAIN">Gain</option>
           <option value="LOSS">Loss</option>
           <option value="NO_TRADE">Não operou</option>
         </select>
       </div>
-      <button type="submit" className="w-fit border border-[#2c3444] px-3 py-2 text-sm">
+      <button type="submit" className="btn-ghost w-fit">
         Registar resultado
       </button>
-      {message ? <p className="text-sm text-[#d6d3d1]">{message}</p> : null}
+      {message ? <p className="text-sm text-[#d4d4d8]">{message}</p> : null}
     </form>
   );
 }

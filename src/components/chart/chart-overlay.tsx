@@ -30,7 +30,7 @@ export function ChartOverlay({
   const drawable = markings.filter((marking) => marking.level != null);
 
   return (
-    <div className="relative border border-[#2c3444] bg-black">
+    <div className="surface relative overflow-hidden bg-black">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={imageUrl} alt="Print do gráfico enviado para leitura" className="block h-auto w-full" />
       {region && imageWidth > 0 && imageHeight > 0 ? (

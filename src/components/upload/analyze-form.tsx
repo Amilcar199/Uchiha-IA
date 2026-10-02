@@ -7,6 +7,7 @@ export function AnalyzeForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,22 +29,34 @@ export function AnalyzeForm() {
 
   return (
     <form onSubmit={onSubmit} className="grid gap-5">
-      <label className="grid gap-2 text-sm">
-        Print do gráfico
-        <input name="image" type="file" accept="image/png,image/jpeg,image/webp" required className="text-[#d6d3d1]" />
+      <label className="group flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-[1.6rem] border border-dashed border-white/15 bg-white/[0.03] px-6 text-center shadow-[0_0_80px_rgba(255,45,74,0.08)] transition hover:border-[#ff2d4a]/70 hover:bg-[#ff2d4a]/[0.04]">
+        <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#11131a] text-[#ff8a98]">
+          <UploadIcon />
+        </span>
+        <span className="mt-4 text-lg font-semibold">{fileName ?? "Solte o print do gráfico"}</span>
+        <span className="mt-2 text-sm text-[#9aa3b2]">PNG, JPG ou WEBP · o ativo e o timeframe ficam no formulário abaixo</span>
+        <input
+          name="image"
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          required
+          className="sr-only"
+          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+        />
       </label>
-      <div className="grid gap-4 md:grid-cols-2">
+
+      <div className="surface grid gap-4 p-5 md:grid-cols-2">
         <Field label="Ativo / par" name="asset" placeholder="EUR/USD" required />
-        <label className="grid gap-2 text-sm">
+        <label className="grid gap-2 text-sm text-[#d4d4d8]">
           Regime
-          <select name="marketRegime" className="border border-[#2c3444] bg-[#10141b] px-3 py-2" required defaultValue="REAL">
+          <select name="marketRegime" className="field" required defaultValue="REAL">
             <option value="REAL">Mercado real</option>
             <option value="OTC">OTC</option>
           </select>
         </label>
-        <label className="grid gap-2 text-sm">
+        <label className="grid gap-2 text-sm text-[#d4d4d8]">
           Timeframe
-          <select name="timeframe" className="border border-[#2c3444] bg-[#10141b] px-3 py-2" defaultValue="M1">
+          <select name="timeframe" className="field" defaultValue="M1">
             <option value="M1">M1</option>
             <option value="M5">M5</option>
             <option value="M15">M15</option>
@@ -51,9 +64,9 @@ export function AnalyzeForm() {
         </label>
         <Field label="Plataforma" name="platform" placeholder="Quotex, Pocket Option..." />
         <Field label="Segundos da vela atual" name="secondsElapsed" type="number" placeholder="0 a 60" />
-        <label className="grid gap-2 text-sm">
+        <label className="grid gap-2 text-sm text-[#d4d4d8]">
           Notícia
-          <select name="newsDeclaration" className="border border-[#2c3444] bg-[#10141b] px-3 py-2" defaultValue="UNKNOWN">
+          <select name="newsDeclaration" className="field" defaultValue="UNKNOWN">
             <option value="UNKNOWN">Não informado</option>
             <option value="FREE">Livre</option>
             <option value="ATTENTION">Atenção</option>
@@ -62,7 +75,7 @@ export function AnalyzeForm() {
         </label>
       </div>
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
-      <button type="submit" disabled={pending} className="w-fit bg-[#e7e5e4] px-4 py-2 text-sm font-medium text-[#10141b] disabled:opacity-60">
+      <button type="submit" disabled={pending} className="btn-accent w-fit">
         {pending ? "A ler o gráfico..." : "Analisar screenshot"}
       </button>
     </form>
@@ -83,15 +96,18 @@ function Field({
   type?: string;
 }) {
   return (
-    <label className="grid gap-2 text-sm">
+    <label className="grid gap-2 text-sm text-[#d4d4d8]">
       {label}
-      <input
-        name={name}
-        type={type}
-        required={required}
-        placeholder={placeholder}
-        className="border border-[#2c3444] bg-[#10141b] px-3 py-2 outline-none"
-      />
+      <input name={name} type={type} required={required} placeholder={placeholder} className="field" />
     </label>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 16V5m0 0 4 4M12 5 8 9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 16.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
   );
 }
