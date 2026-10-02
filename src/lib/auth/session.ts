@@ -16,26 +16,30 @@ export interface SessionUser {
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
-  if (isSupabaseConfigured()) {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) return null;
-    const profile = await supabase.from("profiles").select("name, role").eq("user_id", data.user.id).maybeSingle();
-    return {
-      id: data.user.id,
-      email: data.user.email ?? "",
-      name: profile.data?.name ?? data.user.email ?? "Utilizador",
-      role: profile.data?.role ?? "USER",
-      mode: "supabase",
-    };
-  }
+  try {
+    if (isSupabaseConfigured()) {
+      const supabase = await createSupabaseServerClient();
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return null;
+      const profile = await supabase.from("profiles").select("name, role").eq("user_id", data.user.id).maybeSingle();
+      return {
+        id: data.user.id,
+        email: data.user.email ?? "",
+        name: profile.data?.name ?? data.user.email ?? "Utilizador",
+        role: profile.data?.role ?? "USER",
+        mode: "supabase",
+      };
+    }
 
-  const jar = await cookies();
-  const userId = readSession(jar.get(SESSION_COOKIE)?.value);
-  if (!userId) return null;
-  const user = readDb().users.find((item) => item.id === userId);
-  if (!user) return null;
-  return { ...publicUser(user), mode: "local" };
+    const jar = await cookies();
+    const userId = readSession(jar.get(SESSION_COOKIE)?.value);
+    if (!userId) return null;
+    const user = readDb().users.find((item) => item.id === userId);
+    if (!user) return null;
+    return { ...publicUser(user), mode: "local" };
+  } catch {
+    return null;
+  }
 }
 
 export async function requireUser(): Promise<SessionUser> {

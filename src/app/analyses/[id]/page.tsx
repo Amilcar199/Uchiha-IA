@@ -66,15 +66,15 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
         asset={record.asset}
         timeframe={record.timeframe}
         regime={record.marketRegime}
-        cycle={result.context.cycle}
-        trend={result.context.trend}
+        cycle={result.context?.cycle ?? null}
+        trend={result.context?.trend ?? "INDEFINIDA"}
         state={record.decision}
-        newsStatus={result.news.status}
-        timingConfirmed={result.timing.confirmed}
-        markings={result.markings}
-        confluences={result.confluences}
-        conflicts={result.conflicts}
-        missing={result.decision.missingConditions}
+        newsStatus={result.news?.status ?? "UNKNOWN"}
+        timingConfirmed={Boolean(result.timing?.confirmed)}
+        markings={result.markings ?? []}
+        confluences={result.confluences ?? []}
+        conflicts={result.conflicts ?? []}
+        missing={result.decision?.missingConditions ?? []}
         candleCount={candles.length}
         imageAccepted={result.vision ? result.vision.validation.accepted : candles.length > 0}
       />
@@ -83,11 +83,11 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
         <article className="surface p-5">
           <h2 className="text-sm font-medium">Contexto</h2>
           <dl className="mt-3 grid gap-2 text-sm">
-            <Row label="Ciclo" value={result.context.cycle ?? "Não classificado"} />
-            <Row label="Tendência" value={result.context.trend} />
+            <Row label="Ciclo" value={result.context?.cycle ?? "Não classificado"} />
+            <Row label="Tendência" value={result.context?.trend ?? "INDEFINIDA"} />
             <Row label="Regime" value={record.marketRegime} />
-            <Row label="Notícia" value={result.news.status} />
-            <Row label="Gatilho" value={result.timing.confirmed ? "Confirmado na vela atual" : "Não confirmado"} />
+            <Row label="Notícia" value={result.news?.status ?? "UNKNOWN"} />
+            <Row label="Gatilho" value={result.timing?.confirmed ? "Confirmado na vela atual" : "Não confirmado"} />
             <Row label="Versão das regras" value={record.ruleVersion} />
           </dl>
         </article>
