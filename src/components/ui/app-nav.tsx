@@ -23,8 +23,8 @@ export function AppNav() {
             href={link.href}
             className={
               active
-                ? "rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-[#09090b]"
-                : "rounded-full px-3.5 py-1.5 text-sm text-[#d4d4d8] hover:bg-white/8 hover:text-white"
+                ? "rounded-full bg-[#ff2d4a]/20 px-3.5 py-1.5 text-sm font-medium text-white ring-1 ring-[#ff2d4a]/45"
+                : "rounded-full px-3.5 py-1.5 text-sm text-[#d4d4d8] hover:bg-white/10 hover:text-white"
             }
           >
             {link.label}
