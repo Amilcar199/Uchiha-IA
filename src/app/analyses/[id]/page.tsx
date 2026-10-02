@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { OutcomeForm } from "@/components/analysis/outcome-form";
-import { ChartOverlay } from "@/components/chart/chart-overlay";
+import { ChartOverlay, MARKING_LABEL } from "@/components/chart/chart-overlay";
 import { DecisionBanner } from "@/components/decisions/decision-banner";
 import { AppShell } from "@/components/ui/app-shell";
 import { DeleteAnalysisButton } from "@/components/analysis/delete-analysis-button";
@@ -90,7 +90,8 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
           {result.markings.length === 0 ? <li className="text-[#9aa3b2]">Nenhuma marcação da fase 1.</li> : null}
           {result.markings.map((marking) => (
             <li key={`${marking.type}-${marking.candleIndex}-${marking.level}`}>
-              {marking.type}
+              {MARKING_LABEL[marking.type] ?? marking.type}
+              {typeof marking.metadata.name === "string" ? ` · ${marking.metadata.name}` : ""}
               {marking.direction ? ` · ${marking.direction}` : ""}
               {marking.level != null ? ` · nível ${marking.level.toFixed(4)}` : ""}
               {marking.candleIndex != null ? ` · vela ${marking.candleIndex}` : ""}

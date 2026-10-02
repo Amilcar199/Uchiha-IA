@@ -1,11 +1,28 @@
 import type { Candle } from "@/domain/candles/types";
 import type { Marking } from "@/domain/rules/types";
 
-const MARKING_LABEL: Record<string, string> = {
+export const MARKING_LABEL: Record<string, string> = {
   COMMAND: "Comando",
   SINGLE_RATE: "Taxa única",
   MAGIC_CANDLE: "Candle mágico",
+  DIVIDED_RATE: "Taxa dividida",
+  NEW_POSITION: "Nova posição",
+  FIRST_RECORD: "Primeiro registro",
+  NEW_HIGH: "Nova alta",
+  NEW_LOW: "Nova baixa",
   DEFENSE: "Defesa",
+  LOT: "Lote",
+  DOUBLE_POSITION: "Dupla posição",
+  TRIPLE_POSITION: "Tripla posição",
+  POSITIONING: "Posicionamento",
+  DOMAIN: "Domínio",
+  LOT_CONNECTION: "Conexão de lotes",
+  EXHAUSTION: "Exaustão",
+  CLOSED_PRICE: "Preço fechado",
+  FORCE: "Vela de força",
+  LIQUIDITY_TARGET: "Alvo de liquidez",
+  CONNECTION_TARGET: "Alvo de conexão",
+  CLASSIC: "Candle clássico",
 };
 
 export function ChartOverlay({

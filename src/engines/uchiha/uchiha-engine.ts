@@ -1,5 +1,7 @@
 import { RULE_VERSION } from "@/config/rule-parameters";
 import type { DetectedSetup, Marking, RuleResult, TradingRule } from "@/domain/rules/types";
+import { detectCatalog } from "@/engines/uchiha/catalog";
+import { detectClassics } from "@/engines/classic/lorenz";
 import { classifyFormations, type PriceFormation } from "@/engines/uchiha/formations";
 import { readInteraction, type LevelInteraction } from "@/engines/uchiha/interaction";
 
@@ -120,6 +122,9 @@ export function evaluateUchiha(context: import("@/domain/rules/types").RuleConte
   const interactions = operational.map((formation) => readInteraction(context.candles, formation));
   const markings = formations.map(toMarking);
   const setups = interactions.flatMap((interaction) => toSetups(interaction));
+  const catalog = detectCatalog(context.candles, setups.some((setup) => setup.conflicts.length === 0));
+  markings.push(...catalog.markings, ...detectClassics(context.candles, context.parameters));
+  setups.push(...catalog.setups);
 
   return { ruleResults, markings, setups, interactions };
 }
@@ -153,10 +158,14 @@ function toMarking(formation: PriceFormation): Marking {
     level: formation.level,
     candleIndex: formation.candleIndex,
     confidence: 0.8,
+    zoneLow: formation.kind === "MAGIC_CANDLE" ? Math.min(formation.candle.open, formation.candle.close) : null,
+    zoneHigh: formation.kind === "MAGIC_CANDLE" ? Math.max(formation.candle.open, formation.candle.close) : null,
     metadata: {
       open: formation.candle.open,
       close: formation.candle.close,
-      operational: formation.kind === "MAGIC_CANDLE" ? "IDENTIFIED_ONLY" : "PHASE_1",
+      midline:
+        formation.kind === "MAGIC_CANDLE" ? (formation.candle.open + formation.candle.close) / 2 : null,
+      operational: formation.kind === "MAGIC_CANDLE" ? "ZONA_DE_CONTROLE" : "FASE_1",
     },
   };
 }

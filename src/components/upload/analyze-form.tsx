@@ -13,18 +13,27 @@ export function AnalyzeForm() {
     event.preventDefault();
     setError(null);
     setPending(true);
-    const response = await fetch("/api/analyses", {
-      method: "POST",
-      body: new FormData(event.currentTarget),
-    });
-    const payload = await response.json();
-    setPending(false);
-    if (!response.ok) {
-      setError(payload.error?.message ?? "Não foi possível analisar o gráfico.");
-      return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 50000);
+    try {
+      const response = await fetch("/api/analyses", {
+        method: "POST",
+        body: new FormData(event.currentTarget),
+        signal: controller.signal,
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.id) {
+        setError(payload?.error?.message ?? "Não foi possível analisar o gráfico. Envie um print só da área das velas.");
+        return;
+      }
+      router.push(`/analyses/${payload.id}`);
+      router.refresh();
+    } catch {
+      setError("A leitura não respondeu. Recorte só o gráfico, com as velas bem visíveis, e tente outra vez.");
+    } finally {
+      window.clearTimeout(timer);
+      setPending(false);
     }
-    router.push(`/analyses/${payload.id}`);
-    router.refresh();
   }
 
   return (

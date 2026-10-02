@@ -9,6 +9,7 @@ import { evaluateDecision } from "@/engines/decision/decision-engine";
 import { assessSpace, defensesFromSwings } from "@/engines/defenses/defense-engine";
 import { evaluateNews, type NewsAssessment } from "@/engines/news/news-engine";
 import { evaluateTiming, type TimingResult } from "@/engines/sharingan/sharingan-engine";
+import { evaluateScalp5s } from "@/engines/profile-5s/profile";
 import { evaluateContext, type MarketContext } from "@/engines/supreme/supreme-engine";
 import { evaluateUchiha, type UchihaEvaluation } from "@/engines/uchiha/uchiha-engine";
 import { analyzeImage, type VisionReport } from "@/engines/vision/candle-extractor";
@@ -61,7 +62,7 @@ export async function runAnalysis(request: AnalysisRequest): Promise<AnalysisRes
 
   const visionDuration = Date.now() - visionStarted;
   const rulesStarted = Date.now();
-  const context = evaluateContext(candles, parameters.minimumCandlesForContext);
+  const context = evaluateContext(candles, parameters.minimumCandlesForContext, parameters.tendentialConsecutiveCandles);
   const uchiha = evaluateUchiha({
     candles,
     trend: context.trend,
@@ -90,6 +91,8 @@ export async function runAnalysis(request: AnalysisRequest): Promise<AnalysisRes
     context,
     setups: uchiha.setups,
     timing,
+    markings: uchiha.markings,
+    focusIndex: primarySetup?.candleIndex ?? null,
   });
 
   const defenses = defensesFromSwings(context.swings);
@@ -103,6 +106,14 @@ export async function runAnalysis(request: AnalysisRequest): Promise<AnalysisRes
           parameters,
         })
       : null;
+
+  const scalp = evaluateScalp5s({
+    enabled: parameters.scalp5sEnabled,
+    candles,
+    secondsElapsed: request.metadata.secondsElapsed ?? null,
+    timeframe: request.metadata.timeframe,
+  });
+  if (scalp.blocked && scalp.reason) confluence.conflicts.push("SCALP_5S");
 
   const news = evaluateNews({
     asset: request.metadata.asset,

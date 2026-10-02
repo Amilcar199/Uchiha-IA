@@ -1,5 +1,5 @@
 import type { Direction } from "@/domain/market/types";
-import type { Confluence, DetectedSetup } from "@/domain/rules/types";
+import type { Confluence, DetectedSetup, Marking } from "@/domain/rules/types";
 import type { MarketContext } from "@/engines/supreme/supreme-engine";
 import type { TimingResult } from "@/engines/sharingan/sharingan-engine";
 import { conceptAllowed } from "@/engines/supreme/supreme-engine";
@@ -19,6 +19,8 @@ export function evaluateConfluences(input: {
   context: MarketContext;
   setups: DetectedSetup[];
   timing: TimingResult | null;
+  markings?: Marking[];
+  focusIndex?: number | null;
 }): ConfluenceReport {
   const conflicts = new Set<string>();
   for (const setup of input.setups) {
@@ -91,6 +93,8 @@ export function evaluateConfluences(input: {
     });
   }
 
+  agreeWithFocus(items, input.markings ?? [], input.focusIndex ?? null, favored);
+
   const families = new Set(items.map((item) => item.family));
 
   return {
@@ -99,6 +103,26 @@ export function evaluateConfluences(input: {
     conflicts: [...conflicts],
     favoredDirection: favored,
   };
+}
+
+function agreeWithFocus(items: Confluence[], markings: Marking[], focusIndex: number | null, favored: Direction) {
+  if (focusIndex == null) return;
+  const recent = markings.filter((item) => item.candleIndex != null && item.candleIndex >= focusIndex - 1);
+  const agrees = (item: Marking) => item.direction === favored && item.metadata.discarded !== true;
+
+  if (recent.some((item) => agrees(item) && (item.type === "NEW_HIGH" || item.type === "NEW_LOW"))) {
+    items.push(familyItem(favored, "new_extreme", "NEW_EXTREME", "Nova alta ou nova baixa a favor da leitura."));
+  }
+  if (recent.some((item) => agrees(item) && (item.type === "LIQUIDITY_TARGET" || item.type === "CONNECTION_TARGET" || item.type === "LOT_CONNECTION"))) {
+    items.push(familyItem(favored, "target", "OPEN_TARGET", "Há alvo ou conexão de lote ainda utilizável na direção lida."));
+  }
+  if (recent.some((item) => item.type === "CLASSIC" && (item.direction === favored || item.direction === null))) {
+    items.push(familyItem(favored, "classic", "LORENZ", "Um candle clássico acompanha a leitura. Sozinho não autoriza entrada."));
+  }
+}
+
+function familyItem(direction: Direction, family: string, ruleId: string, evidence: string): Confluence {
+  return { type: family, direction, weight: 1, evidence, ruleId, family };
 }
 
 function pickDirection(setups: DetectedSetup[]): Direction | null {

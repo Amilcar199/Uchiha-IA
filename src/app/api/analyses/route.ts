@@ -11,6 +11,8 @@ import { listAnalyses, saveAnalysis, type AnalysisFilters } from "@/repositories
 import { runAnalysis } from "@/engines/orchestrator/analysis-orchestrator";
 import type { MarketRegime, NewsStatus } from "@/domain/market/types";
 
+export const maxDuration = 60;
+
 const metadataSchema = z.object({
   asset: z.string().trim().min(3).max(24),
   marketRegime: z.enum(["REAL", "OTC"]),
@@ -73,8 +75,8 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) {
       throw new AppError("VISION_003", "Envie o print do gráfico.", 400);
     }
-    if (file.size > 8 * 1024 * 1024) {
-      throw new AppError("VISION_004", "A imagem passa de 8 MB. Envie um print menor.", 400);
+    if (file.size > 4 * 1024 * 1024) {
+      throw new AppError("VISION_004", "A imagem passa de 4 MB. Recorte só a área do gráfico e envie de novo.", 400);
     }
 
     const secondsRaw = parsed.data.secondsElapsed;
@@ -84,7 +86,11 @@ export async function POST(request: Request) {
       throw new AppError("ANALYSIS_003", "Os segundos da vela atual têm de estar entre 0 e 60.", 400);
     }
 
-    const bytes = await sharp(Buffer.from(await file.arrayBuffer())).png().toBuffer();
+    const bytes = await sharp(Buffer.from(await file.arrayBuffer()))
+      .rotate()
+      .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
     const result = await runAnalysis({
       image: bytes,
       requestId,

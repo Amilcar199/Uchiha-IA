@@ -21,9 +21,23 @@ export interface RuleParameters {
   visionWickQuantizationPx: number;
   minimumCandlesForContext: number;
   minimumReadableCandles: number;
+  /**
+   * Velas seguidas na mesma cor para classificar o ciclo tendencial.
+   * null = o material não dá o número. O ciclo não é forçado.
+   */
+  tendentialConsecutiveCandles: number | null;
+  /** Perfil 5s. Desligado. Os 5 velas e os últimos 5 segundos estão no material. */
+  scalp5sEnabled: boolean;
+  /** Lorenz, secção 6.4. Não são limiares da Lógica do Preço. */
+  lorenz: {
+    hammerWickShare: number;
+    dragonflyWickShare: number;
+    marubozuBodyShare: number;
+    marubozuWickShare: number;
+  };
 }
 
-export const RULE_VERSION = "1.0.0";
+export const RULE_VERSION = "1.1.0";
 
 export const defaultRuleParameters: RuleParameters = {
   version: RULE_VERSION,
@@ -41,6 +55,14 @@ export const defaultRuleParameters: RuleParameters = {
   visionWickQuantizationPx: 0,
   minimumCandlesForContext: 15,
   minimumReadableCandles: 5,
+  tendentialConsecutiveCandles: null,
+  scalp5sEnabled: false,
+  lorenz: {
+    hammerWickShare: 0.75,
+    dragonflyWickShare: 0.95,
+    marubozuBodyShare: 0.8,
+    marubozuWickShare: 0.2,
+  },
 };
 
 export type ParameterStatus = "VALIDATED" | "PENDING_MENTOR_VALIDATION" | "CONFIGURABLE";

@@ -30,7 +30,11 @@ function lastTwoAscending(points: SwingPoint[]): boolean | null {
  * Fonte: Manual, fundamento 2; Guia, ciclos.
  * Não usa limiar inventado de "agressivo" para forçar o ciclo tendencial.
  */
-export function evaluateContext(candles: Candle[], minimumForContext: number): MarketContext {
+export function evaluateContext(
+  candles: Candle[],
+  minimumForContext: number,
+  tendentialConsecutiveCandles: number | null = null,
+): MarketContext {
   const swings = detectSwings(candles);
   const highs = swingHighs(swings);
   const lows = swingLows(swings);
@@ -53,7 +57,20 @@ export function evaluateContext(candles: Candle[], minimumForContext: number): M
   let cycleStatus: CycleStatus = "INSUFFICIENT_STRUCTURE";
   let allowedConcepts: OperationalConcept[] = [];
 
-  if (trend === "ALTA" || trend === "BAIXA") {
+  const trailing = trailingSameColor(candles);
+  const tendential =
+    tendentialConsecutiveCandles != null &&
+    trailing >= tendentialConsecutiveCandles &&
+    (trend === "ALTA" || trend === "BAIXA");
+
+  if (tendential) {
+    cycle = "TENDENCIA";
+    cycleStatus = "CLASSIFIED";
+    allowedConcepts = ["ROMPIMENTO", "CONTINUACAO"];
+    notes.push(
+      "A sequência final atingiu o número configurado de velas na mesma direção. Ciclo tendencial: só rompimento e continuação.",
+    );
+  } else if (trend === "ALTA" || trend === "BAIXA") {
     cycle = "CORRECAO_EM_TENDENCIA";
     cycleStatus = "CLASSIFIED";
     allowedConcepts = ["RETRACAO", "REVERSAO", "ROMPIMENTO", "CONTINUACAO"];
@@ -94,4 +111,15 @@ export function evaluateContext(candles: Candle[], minimumForContext: number): M
 
 export function conceptAllowed(context: MarketContext, concept: OperationalConcept): boolean {
   return context.allowedConcepts.includes(concept);
+}
+
+function trailingSameColor(candles: Candle[]): number {
+  const last = candles[candles.length - 1];
+  if (!last || last.color === "neutral") return 0;
+  let count = 0;
+  for (let index = candles.length - 1; index >= 0; index -= 1) {
+    if (candles[index].color !== last.color) break;
+    count += 1;
+  }
+  return count;
 }

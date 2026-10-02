@@ -70,7 +70,16 @@ export type MarkingType =
   | "DEFENSE"
   | "LOT"
   | "DOUBLE_POSITION"
-  | "TRIPLE_POSITION";
+  | "TRIPLE_POSITION"
+  | "POSITIONING"
+  | "DOMAIN"
+  | "LOT_CONNECTION"
+  | "EXHAUSTION"
+  | "CLOSED_PRICE"
+  | "FORCE"
+  | "LIQUIDITY_TARGET"
+  | "CONNECTION_TARGET"
+  | "CLASSIC";
 
 export interface Marking {
   type: MarkingType;

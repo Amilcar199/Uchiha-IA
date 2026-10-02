@@ -1,0 +1,64 @@
+---
+description: Motor da Lógica do Preço. Regras que a leitura tem de seguir. Não inventar limiares nem estratégias.
+alwaysApply: true
+---
+
+# Uchiha — motor da estratégia
+
+O site Next.js já publicado é a interface. Esta regra governa a leitura. Não apagar o site nem reescrever o produto em Python sem pedido explícito.
+
+A ferramenta sugere e explica. O humano opera. Sem ordens, sem credenciais de corretora, sem scraping.
+
+## Princípios
+
+- Cada saída cita regras acionadas, com id, versão, fonte e motivo em português.
+- Confluência mínima = 3, de grupos independentes. A mesma informação não conta duas vezes.
+- Sinais contraditórios de conceitos diferentes ⇒ AGUARDAR.
+- AGUARDAR e NAO_OPERAR são respostas válidas. Nunca forçar entrada.
+- `confianca` é qualitativa (alta, media, baixa). Nunca percentual de acerto.
+- Limiar subjetivo fica em configuração, marcado A VALIDAR COM O MENTOR. Sem número mágico no código.
+- Em dúvida, registrar em aberto e usar default configurável. Não inventar a regra em silêncio.
+- Aviso de risco em toda saída humana: opções binárias podem levar à perda total; a ferramenta não garante resultado.
+
+## Gates, nesta ordem
+
+- G0 dados ilegíveis ou confiança de leitura baixa ⇒ NAO_OPERAR
+- G1 regime, horário ou segundos em falta ⇒ AGUARDAR
+- G2 notícia de alto impacto no mercado real ⇒ NAO_OPERAR. Em OTC, só cautela
+- G3 gráfico sem referências ou conceito incompatível com o ciclo ⇒ NAO_OPERAR
+- G4 sem marcação ou alvo válido ⇒ AGUARDAR
+- G5 gatilho, pavio, 15s, espaço até a defesa ou toque na defesa ⇒ AGUARDAR
+- G6 menos de 3 confluências independentes ou conflito ⇒ AGUARDAR
+- OPERAR só quando todos passam
+
+## Ciclos
+
+- Consolidado: só retração/reversão. Há contradição com “gráfico de consolidação não operar”. Não classificar sozinho. Flag configurável.
+- Correção lateral: só retração/reversão
+- Correção em tendência: qualquer conceito
+- Tendencial: só rompimento/continuação até a próxima defesa
+- Conceito certo no ciclo errado bloqueia a entrada
+
+## Marcações a respeitar
+
+Comando: sem pavio na abertura (compra na mínima, venda na máxima). Linha na abertura. Trava ⇒ reversão. Rompe com pavio ⇒ continuidade. Sem pavio no rompimento ⇒ não entrar. Retração: 15s + pico + rejeição, no máximo uma por comando.
+
+Taxa única: pavio na abertura e nenhum no fechamento. Linha no fechamento. Mesmos filtros do comando.
+
+Candle mágico: sem pavio dos dois lados. Linhas na abertura e no fechamento. Zona de 50% só depois de rompimento confirmado com pavio.
+
+Taxa dividida: taxa única e depois comando, nessa ordem. Linha no meio. A ordem inversa não forma o padrão.
+
+Nova posição, primeiro registro (no máximo 3 rompimentos, cada um com pavio), nova alta/baixa, dupla e tripla posição, posicionamento, lotes, domínios, conexão de lotes (as 5 regras), exaustão, preço fechado e vela de força fazem parte da leitura. Enquanto um detector não existir no código, a análise não pode tratar essa ausência como “não há setup”.
+
+Candles clássicos (Lorenz) são no máximo 1 confluência e nunca destravam entrada sozinhos.
+
+Perfil 5s fica desligado por padrão.
+
+## Conflitos já conhecidos
+
+- Consolidado operável versus gráfico de consolidação não operável
+- Rompimento sem pavio: no comando/taxa única não se pega; no preço fechado a continuidade existe. Default: prevalece o comando
+- 15 segundos valem no M1. Fora disso, pendente
+- Pavio longo, pequeno, muito grande, perto da defesa e espaço até a defesa: sem número até o mentor validar
+- Reversão após o rompimento e setups só em imagem: não implementar
