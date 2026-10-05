@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DiagnosisReport } from "@/components/analysis/diagnosis-report";
+import { ReadingCard } from "@/components/analysis/reading-card";
+import { buildReadingCard } from "@/engines/decision/reading-card";
 import { OutcomeForm } from "@/components/analysis/outcome-form";
 import { ChartOverlay, MARKING_LABEL } from "@/components/chart/chart-overlay";
-import { DecisionBanner } from "@/components/decisions/decision-banner";
 import { AppShell } from "@/components/ui/app-shell";
 import { DeleteAnalysisButton } from "@/components/analysis/delete-analysis-button";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -30,6 +31,17 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
   const outcomes = await listOutcomes(id);
   const result = record.result;
   const candles = result.vision?.candles ?? [];
+  const markings = result.markings ?? [];
+  const card = buildReadingCard({
+    state: record.decision,
+    confidence: record.confidence,
+    cycle: result.context?.cycle ?? null,
+    trend: result.context?.trend ?? "INDEFINIDA",
+    markings,
+    confluences: result.confluences ?? [],
+    missing: result.decision?.missingConditions ?? [],
+    conflicts: result.conflicts ?? [],
+  });
 
   return (
     <AppShell name={user.name}>
@@ -51,7 +63,7 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
         <ChartOverlay
           imageUrl={`/api/analyses/${record.id}/image`}
           candles={candles}
-          markings={result.markings}
+          markings={card.overlay.length > 0 ? card.overlay : markings.slice(-6)}
           region={result.vision?.chartRegion ?? null}
           imageWidth={result.vision?.validation.width ?? 0}
           imageHeight={result.vision?.validation.height ?? 0}
@@ -59,7 +71,19 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
       ) : null}
 
       <div className="mt-6">
-        <DecisionBanner state={record.decision} confidence={record.confidence} />
+        <ReadingCard
+          asset={record.asset}
+          timeframe={record.timeframe}
+          regime={record.marketRegime}
+          state={record.decision}
+          confidence={record.confidence}
+          cycle={result.context?.cycle ?? null}
+          trend={result.context?.trend ?? "INDEFINIDA"}
+          markings={markings}
+          confluences={result.confluences ?? []}
+          missing={result.decision?.missingConditions ?? []}
+          conflicts={result.conflicts ?? []}
+        />
       </div>
 
       <DiagnosisReport
@@ -71,36 +95,13 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
         state={record.decision}
         newsStatus={result.news?.status ?? "UNKNOWN"}
         timingConfirmed={Boolean(result.timing?.confirmed)}
-        markings={result.markings ?? []}
+        markings={markings}
         confluences={result.confluences ?? []}
         conflicts={result.conflicts ?? []}
         missing={result.decision?.missingConditions ?? []}
         candleCount={candles.length}
         imageAccepted={result.vision ? result.vision.validation.accepted : candles.length > 0}
       />
-
-      <section className="mt-6 grid gap-4 lg:grid-cols-2">
-        <article className="surface p-5">
-          <h2 className="text-sm font-medium">Contexto</h2>
-          <dl className="mt-3 grid gap-2 text-sm">
-            <Row label="Ciclo" value={result.context?.cycle ?? "Não classificado"} />
-            <Row label="Tendência" value={result.context?.trend ?? "INDEFINIDA"} />
-            <Row label="Regime" value={record.marketRegime} />
-            <Row label="Notícia" value={result.news?.status ?? "UNKNOWN"} />
-            <Row label="Gatilho" value={result.timing?.confirmed ? "Confirmado na vela atual" : "Não confirmado"} />
-            <Row label="Versão das regras" value={record.ruleVersion} />
-          </dl>
-        </article>
-        <article className="surface p-5">
-          <h2 className="text-sm font-medium">Confluências</h2>
-          <ul className="mt-3 grid gap-2 text-sm">
-            {result.confluences.length === 0 ? <li className="text-[#9aa3b2]">Nenhuma confluência independente.</li> : null}
-            {result.confluences.map((item) => (
-              <li key={`${item.family}-${item.type}`}>{item.evidence}</li>
-            ))}
-          </ul>
-        </article>
-      </section>
 
       <section className="surface mt-4 p-5">
         <h2 className="text-sm font-medium">Marcações</h2>
@@ -116,15 +117,6 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
             </li>
           ))}
         </ul>
-      </section>
-
-      <section className="surface mt-4 p-5">
-        <h2 className="text-sm font-medium">Explicação</h2>
-        <ol className="mt-3 grid list-decimal gap-2 pl-5 text-sm leading-6">
-          {result.explanation.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ol>
       </section>
 
       <section className="mt-6">
@@ -147,11 +139,3 @@ export default async function AnalysisPage({ params }: AnalysisPageProps) {
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between gap-4">
-      <dt className="text-[#9aa3b2]">{label}</dt>
-      <dd>{value}</dd>
-    </div>
-  );
-}

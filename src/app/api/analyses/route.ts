@@ -86,11 +86,20 @@ export async function POST(request: Request) {
       throw new AppError("ANALYSIS_003", "Os segundos da vela atual têm de estar entre 0 e 60.", 400);
     }
 
-    const bytes = await sharp(Buffer.from(await file.arrayBuffer()))
-      .rotate()
-      .resize({ width: 1400, height: 1400, fit: "inside", withoutEnlargement: true })
-      .png()
-      .toBuffer();
+    let bytes: Buffer;
+    try {
+      bytes = await sharp(Buffer.from(await file.arrayBuffer()))
+        .rotate()
+        .resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true })
+        .png()
+        .toBuffer();
+    } catch {
+      throw new AppError(
+        "VISION_005",
+        "Não consegui abrir essa captura. Envie um PNG ou JPG do gráfico, ou cole a imagem com Ctrl+V.",
+        400,
+      );
+    }
     const result = await runAnalysis({
       image: bytes,
       requestId,

@@ -87,8 +87,9 @@ function classifyPixels(data: Buffer, width: number, height: number, channels: n
 }
 
 function classifyColor(red: number, green: number, blue: number): PixelClass {
-  if (green > 70 && green > red + 25 && green > blue + 10) return "bull";
-  if (red > 70 && red > green + 25 && red > blue + 10) return "bear";
+  // Verde e vermelho, incluindo o verde-azulado dos gráficos escuros.
+  if (green > 60 && green >= red + 12 && green + 15 >= blue) return "bull";
+  if (red > 60 && red >= green + 12 && red >= blue) return "bear";
   return "none";
 }
 

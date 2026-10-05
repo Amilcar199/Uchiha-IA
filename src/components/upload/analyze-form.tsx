@@ -8,28 +8,42 @@ export function AnalyzeForm() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+
+  function takeFile(next: File | null) {
+    setFile(next);
+    setFileName(next?.name ?? null);
+    setError(null);
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!file) {
+      setError("Envie ou cole a captura do gráfico.");
+      return;
+    }
     setError(null);
     setPending(true);
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 50000);
     try {
+      const image = await shrinkScreenshot(file);
+      const body = new FormData(event.currentTarget);
+      body.set("image", image);
       const response = await fetch("/api/analyses", {
         method: "POST",
-        body: new FormData(event.currentTarget),
+        body,
         signal: controller.signal,
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.id) {
-        setError(payload?.error?.message ?? "Não foi possível analisar o gráfico. Envie um print só da área das velas.");
+        setError(payload?.error?.message ?? "Não foi possível analisar o gráfico. A captura precisa mostrar as velas verdes e vermelhas.");
         return;
       }
       router.push(`/analyses/${payload.id}`);
       router.refresh();
     } catch {
-      setError("A leitura não respondeu. Recorte só o gráfico, com as velas bem visíveis, e tente outra vez.");
+      setError("A leitura não respondeu. Cole a captura com Ctrl+V ou envie um PNG/JPG só da área do gráfico.");
     } finally {
       window.clearTimeout(timer);
       setPending(false);
@@ -37,20 +51,37 @@ export function AnalyzeForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="grid gap-5">
-      <label className="group flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-[1.6rem] border border-dashed border-white/15 bg-white/[0.03] px-6 text-center shadow-[0_0_80px_rgba(255,45,74,0.08)] transition hover:border-[#ff2d4a]/70 hover:bg-[#ff2d4a]/[0.04]">
+    <form
+      onSubmit={onSubmit}
+      className="grid gap-5"
+      onPaste={(event) => {
+        const pasted = [...event.clipboardData.items].find((item) => item.type.startsWith("image/"))?.getAsFile();
+        if (!pasted) return;
+        event.preventDefault();
+        takeFile(pasted);
+      }}
+    >
+      <label
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={(event) => {
+          event.preventDefault();
+          const dropped = [...event.dataTransfer.files].find((item) => item.type.startsWith("image/"));
+          if (dropped) takeFile(dropped);
+        }}
+        className="group flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-[1.6rem] border border-dashed border-white/15 bg-white/[0.03] px-6 text-center shadow-[0_0_80px_rgba(255,45,74,0.08)] transition hover:border-[#ff2d4a]/70 hover:bg-[#ff2d4a]/[0.04]"
+      >
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#11131a] text-[#ff8a98]">
           <UploadIcon />
         </span>
         <span className="mt-4 text-lg font-semibold">{fileName ?? "Solte o print do gráfico"}</span>
-        <span className="mt-2 text-sm text-[#9aa3b2]">PNG, JPG ou WEBP · o ativo e o timeframe ficam no formulário abaixo</span>
+        <span className="mt-2 text-sm text-[#9aa3b2]">PNG, JPG ou WEBP · arraste, escolha o ficheiro ou cole com Ctrl+V</span>
         <input
           name="image"
           type="file"
           accept="image/png,image/jpeg,image/webp"
-          required
+          required={!file}
           className="sr-only"
-          onChange={(event) => setFileName(event.target.files?.[0]?.name ?? null)}
+          onChange={(event) => takeFile(event.target.files?.[0] ?? null)}
         />
       </label>
 
@@ -110,6 +141,27 @@ function Field({
       <input name={name} type={type} required={required} placeholder={placeholder} className="field" />
     </label>
   );
+}
+
+async function shrinkScreenshot(file: File): Promise<File> {
+  const bitmap = await createImageBitmap(file);
+  const max = 1200;
+  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+  const width = Math.max(1, Math.round(bitmap.width * scale));
+  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    bitmap.close();
+    return file;
+  }
+  context.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) return file;
+  return new File([blob], "grafico.png", { type: "image/png" });
 }
 
 function UploadIcon() {

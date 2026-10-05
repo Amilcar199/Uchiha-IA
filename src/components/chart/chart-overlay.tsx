@@ -44,7 +44,7 @@ export function ChartOverlay({
   const max = prices.length ? Math.max(...prices) : 1;
   const min = prices.length ? Math.min(...prices) : 0;
   const span = max - min || 1;
-  const drawable = markings.filter((marking) => marking.level != null);
+  const drawable = markings.filter((marking) => marking.level != null).slice(-6);
 
   return (
     <div className="surface relative overflow-hidden bg-black">
@@ -57,8 +57,8 @@ export function ChartOverlay({
             const y = region.top + ratio * (region.bottom - region.top);
             return (
               <g key={`${marking.type}-${marking.candleIndex}-${index}`}>
-                <line x1={region.left} x2={region.right} y1={y} y2={y} stroke="#e7e5e4" strokeWidth="1.5" />
-                <text x={region.left + 8} y={y - 6} fill="#e7e5e4" fontSize="14">
+                <line x1={region.left} x2={region.right} y1={y} y2={y} stroke={lineColor(marking)} strokeWidth="2" />
+                <text x={region.left + 8} y={Math.max(16, y - 6)} fill={lineColor(marking)} fontSize="14">
                   {MARKING_LABEL[marking.type] ?? marking.type}
                 </text>
               </g>
@@ -68,4 +68,12 @@ export function ChartOverlay({
       ) : null}
     </div>
   );
+}
+
+function lineColor(marking: Marking): string {
+  if (marking.type === "LIQUIDITY_TARGET" || marking.type === "CONNECTION_TARGET") return "#7dd3fc";
+  if (marking.type === "DEFENSE") return "#fcd34d";
+  if (marking.direction === "SELL") return "#ff5a6e";
+  if (marking.direction === "BUY") return "#6ee7b7";
+  return "#e7e5e4";
 }
