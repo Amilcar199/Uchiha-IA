@@ -48,7 +48,7 @@ export function AnalyzeForm() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.id) {
-        setError(payload?.error?.message ?? "Não foi possível ler as velas. A captura precisa mostrar os candles verdes e vermelhos.");
+        setError(payload?.error?.message ?? `A leitura falhou (${response.status}). Envia o print outra vez.`);
         return;
       }
       router.push(`/analyses/${payload.id}`);
@@ -140,12 +140,17 @@ async function shrinkScreenshot(file: File): Promise<File> {
   const context = canvas.getContext("2d");
   if (!context) {
     bitmap.close();
-    return file;
+    throw new Error("Não foi possível reduzir a captura.");
   }
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-  if (!blob) return file;
+  let quality = 0.85;
+  let blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  while (blob && blob.size > 1_500_000 && quality > 0.5) {
+    quality -= 0.15;
+    blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+  }
+  if (!blob) throw new Error("Não foi possível reduzir a captura.");
   return new File([blob], "grafico.jpg", { type: "image/jpeg" });
 }
 

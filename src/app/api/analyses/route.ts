@@ -14,12 +14,12 @@ import type { MarketRegime, NewsStatus } from "@/domain/market/types";
 export const maxDuration = 60;
 
 const metadataSchema = z.object({
-  asset: z.string().trim().max(24).optional(),
-  marketRegime: z.enum(["REAL", "OTC"]).optional(),
-  timeframe: z.enum(["M1", "M5", "M15"]).optional(),
-  platform: z.string().trim().max(40).optional(),
-  secondsElapsed: z.string().optional(),
-  newsDeclaration: z.enum(["FREE", "ATTENTION", "BLOCKED", "UNKNOWN"]).optional(),
+  asset: z.string().trim().max(24).nullish(),
+  marketRegime: z.enum(["REAL", "OTC"]).nullish(),
+  timeframe: z.enum(["M1", "M5", "M15"]).nullish(),
+  platform: z.string().trim().max(40).nullish(),
+  secondsElapsed: z.string().nullish(),
+  newsDeclaration: z.enum(["FREE", "ATTENTION", "BLOCKED", "UNKNOWN"]).nullish(),
 });
 
 export async function GET(request: Request) {
@@ -59,17 +59,16 @@ export async function POST(request: Request) {
   return handle(requestId, async () => {
     const user = await requireUser();
     const form = await request.formData();
+    const rawTimeframe = form.get("timeframe");
     const parsed = metadataSchema.safeParse({
-      asset: form.get("asset"),
-      marketRegime: form.get("marketRegime"),
-      timeframe: form.get("timeframe"),
+      asset: form.get("asset") || undefined,
+      marketRegime: form.get("marketRegime") || undefined,
+      timeframe: rawTimeframe === "M1" || rawTimeframe === "M5" || rawTimeframe === "M15" ? rawTimeframe : undefined,
       platform: form.get("platform") || undefined,
       secondsElapsed: form.get("secondsElapsed") || undefined,
-      newsDeclaration: form.get("newsDeclaration"),
+      newsDeclaration: form.get("newsDeclaration") || undefined,
     });
-    if (!parsed.success) {
-      throw new AppError("ANALYSIS_002", "Não foi possível ler os dados do print.", 400);
-    }
+    const data = parsed.success ? parsed.data : {};
 
     const file = form.get("image");
     if (!(file instanceof File)) {
@@ -79,7 +78,7 @@ export async function POST(request: Request) {
       throw new AppError("VISION_004", "A imagem passa de 4 MB. Recorte só a área do gráfico e envie de novo.", 400);
     }
 
-    const secondsRaw = parsed.data.secondsElapsed;
+    const secondsRaw = data.secondsElapsed;
     const secondsElapsed =
       secondsRaw == null || secondsRaw === "" ? null : Number(secondsRaw);
     if (secondsElapsed != null && (Number.isNaN(secondsElapsed) || secondsElapsed < 0 || secondsElapsed > 60)) {
@@ -104,12 +103,12 @@ export async function POST(request: Request) {
       image: bytes,
       requestId,
       metadata: {
-        asset: parsed.data.asset && parsed.data.asset.trim().length >= 3 ? parsed.data.asset.toUpperCase() : "NAO LIDO",
-        marketRegime: (parsed.data.marketRegime ?? "REAL") as MarketRegime,
-        timeframe: parsed.data.timeframe ?? "NAO LIDO",
-        platform: parsed.data.platform || null,
+        asset: data.asset && data.asset.trim().length >= 3 ? data.asset.toUpperCase() : "NAO LIDO",
+        marketRegime: (data.marketRegime ?? "REAL") as MarketRegime,
+        timeframe: data.timeframe ?? "NAO LIDO",
+        platform: data.platform || null,
         secondsElapsed,
-        newsDeclaration: (parsed.data.newsDeclaration ?? "UNKNOWN") as NewsStatus,
+        newsDeclaration: (data.newsDeclaration ?? "UNKNOWN") as NewsStatus,
       },
     });
 

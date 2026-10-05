@@ -119,7 +119,7 @@ function extractCandles(classes: PixelClass[], width: number, height: number): {
     return { candles: [], region: null, warnings: ["CHART_REGION_NOT_FOUND"] };
   }
 
-  const runs = candleRuns(groupColumns(columnCounts, minX, maxX));
+  const runs = candleRuns(columnCounts, groupColumns(columnCounts, minX, maxX));
   const regionHeight = maxY - minY || 1;
   const candles: Candle[] = [];
 
@@ -157,10 +157,39 @@ function groupColumns(counts: number[], minX: number, maxX: number): Array<{ sta
   return runs.filter((run) => run.end - run.start >= 2);
 }
 
-function candleRuns(runs: Array<{ start: number; end: number }>): Array<{ start: number; end: number }> {
-  const thin = runs.filter((run) => run.end - run.start <= 40);
-  const chosen = thin.length >= 5 ? thin : runs;
-  return chosen.length > 80 ? chosen.slice(-80) : chosen;
+function candleRuns(
+  counts: number[],
+  runs: Array<{ start: number; end: number }>,
+): Array<{ start: number; end: number }> {
+  const split = runs.flatMap((run) => splitWideRun(counts, run));
+  const chosen = split.filter((run) => run.end - run.start >= 2 && run.end - run.start <= 28);
+  const source = chosen.length >= 5 ? chosen : split.filter((run) => run.end - run.start >= 2);
+  return source.length > 80 ? source.slice(-80) : source;
+}
+
+function splitWideRun(
+  counts: number[],
+  run: { start: number; end: number },
+): Array<{ start: number; end: number }> {
+  const width = run.end - run.start;
+  if (width <= 18) return [run];
+
+  const heights = counts.slice(run.start, run.end + 1).sort((left, right) => left - right);
+  const median = heights[Math.floor(heights.length / 2)] ?? 0;
+  const gapLevel = Math.max(2, Math.floor(median * 0.45));
+  const pieces: Array<{ start: number; end: number }> = [];
+  let start = run.start;
+
+  for (let x = run.start; x <= run.end; x += 1) {
+    if ((counts[x] ?? 0) > gapLevel) continue;
+    if (x - start >= 2) pieces.push({ start, end: x - 1 });
+    while (x <= run.end && (counts[x] ?? 0) <= gapLevel) x += 1;
+    start = x;
+  }
+
+  if (run.end - start >= 2) pieces.push({ start, end: run.end });
+  if (pieces.length <= 1 && width > 36) return [];
+  return pieces.length > 0 ? pieces : [run];
 }
 
 function candleFromRun(
