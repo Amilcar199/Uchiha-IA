@@ -46,9 +46,10 @@ export function AnalyzeForm() {
         body,
         signal: controller.signal,
       });
-      const payload = await response.json().catch(() => null);
+      const raw = await response.text();
+      const payload = parsePayload(raw);
       if (!response.ok || !payload?.id) {
-        setError(payload?.error?.message ?? `A leitura falhou (${response.status}). Envia o print outra vez.`);
+        setError(payload?.error?.message ?? readableFailure(raw, response.status));
         return;
       }
       router.push(`/analyses/${payload.id}`);
@@ -108,6 +109,20 @@ export function AnalyzeForm() {
       </button>
     </form>
   );
+}
+
+function parsePayload(raw: string): { id?: string; error?: { message?: string } } | null {
+  try {
+    return JSON.parse(raw) as { id?: string; error?: { message?: string } };
+  } catch {
+    return null;
+  }
+}
+
+function readableFailure(raw: string, status: number): string {
+  const text = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (text.length > 0) return text.slice(0, 180);
+  return `A leitura falhou (${status}). Envia o print outra vez.`;
 }
 
 async function readPrintText(file: File): Promise<string> {

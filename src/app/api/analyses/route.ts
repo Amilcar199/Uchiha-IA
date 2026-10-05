@@ -1,4 +1,3 @@
-import sharp from "sharp";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth/session";
@@ -9,6 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { saveImage } from "@/lib/store/local-store";
 import { listAnalyses, saveAnalysis, type AnalysisFilters } from "@/repositories/analysis.repository";
 import { runAnalysis } from "@/engines/orchestrator/analysis-orchestrator";
+import { pngFromImage } from "@/engines/vision/raster";
 import type { MarketRegime, NewsStatus } from "@/domain/market/types";
 
 export const maxDuration = 60;
@@ -87,11 +87,7 @@ export async function POST(request: Request) {
 
     let bytes: Buffer;
     try {
-      bytes = await sharp(Buffer.from(await file.arrayBuffer()))
-        .rotate()
-        .resize({ width: 1200, height: 1200, fit: "inside", withoutEnlargement: true })
-        .png()
-        .toBuffer();
+      bytes = pngFromImage(Buffer.from(await file.arrayBuffer()));
     } catch {
       throw new AppError(
         "VISION_005",

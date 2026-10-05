@@ -6,6 +6,10 @@ const PUBLIC_PATHS = new Set(["/login", "/register"]);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // O print vai no corpo. Renovar a sessão aqui clona esse corpo e a plataforma responde 500.
+  if (request.method === "POST" && pathname === "/api/analyses") {
+    return NextResponse.next();
+  }
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/auth") ||

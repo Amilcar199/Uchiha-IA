@@ -1,7 +1,7 @@
-import sharp from "sharp";
 import { buildCandle } from "@/domain/candles/build-candle";
 import type { Candle, CandleColor } from "@/domain/candles/types";
 import { validateImageSize, type ImageValidation } from "@/engines/vision/image-validator";
+import { rasterFromImage } from "@/engines/vision/raster";
 
 export interface VisionReport {
   candles: Candle[];
@@ -16,10 +16,34 @@ export interface VisionReport {
 type PixelClass = "bull" | "bear" | "none";
 
 export async function analyzeImage(input: Buffer, minimumForContext: number): Promise<VisionReport> {
-  const image = sharp(input).ensureAlpha();
-  const metadata = await image.metadata();
-  const width = metadata.width ?? 0;
-  const height = metadata.height ?? 0;
+  let width = 0;
+  let height = 0;
+  let pixels: Buffer;
+  try {
+    const raster = rasterFromImage(input);
+    width = raster.width;
+    height = raster.height;
+    pixels = raster.data;
+  } catch {
+    return {
+      candles: [],
+      validation: {
+        accepted: false,
+        width: 0,
+        height: 0,
+        blockers: ["UNREADABLE_IMAGE"],
+        warnings: [],
+        code: "VISION_005",
+        userMessage: "Não consegui abrir essa captura. Envie um PNG ou JPG do gráfico.",
+      },
+      globalConfidence: 0,
+      insufficientContext: true,
+      warnings: ["UNREADABLE_IMAGE"],
+      chartRegion: null,
+      priceScale: "relative",
+    };
+  }
+
   const validation = validateImageSize(width, height);
 
   if (!validation.accepted) {
@@ -34,9 +58,8 @@ export async function analyzeImage(input: Buffer, minimumForContext: number): Pr
     };
   }
 
-  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
-  const classes = classifyPixels(data, info.width, info.height, info.channels);
-  const extracted = extractCandles(classes, info.width, info.height);
+  const classes = classifyPixels(pixels, width, height, 4);
+  const extracted = extractCandles(classes, width, height);
 
   if (extracted.candles.length < 5) {
     return {
