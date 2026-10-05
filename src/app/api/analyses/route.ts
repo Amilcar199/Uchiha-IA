@@ -14,12 +14,12 @@ import type { MarketRegime, NewsStatus } from "@/domain/market/types";
 export const maxDuration = 60;
 
 const metadataSchema = z.object({
-  asset: z.string().trim().min(3).max(24),
-  marketRegime: z.enum(["REAL", "OTC"]),
-  timeframe: z.enum(["M1", "M5", "M15"]),
+  asset: z.string().trim().max(24).optional(),
+  marketRegime: z.enum(["REAL", "OTC"]).optional(),
+  timeframe: z.enum(["M1", "M5", "M15"]).optional(),
   platform: z.string().trim().max(40).optional(),
   secondsElapsed: z.string().optional(),
-  newsDeclaration: z.enum(["FREE", "ATTENTION", "BLOCKED", "UNKNOWN"]),
+  newsDeclaration: z.enum(["FREE", "ATTENTION", "BLOCKED", "UNKNOWN"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       newsDeclaration: form.get("newsDeclaration"),
     });
     if (!parsed.success) {
-      throw new AppError("ANALYSIS_002", "Preencha ativo, regime, timeframe e o estado da notícia.", 400);
+      throw new AppError("ANALYSIS_002", "Não foi possível ler os dados do print.", 400);
     }
 
     const file = form.get("image");
@@ -104,12 +104,12 @@ export async function POST(request: Request) {
       image: bytes,
       requestId,
       metadata: {
-        asset: parsed.data.asset.toUpperCase(),
-        marketRegime: parsed.data.marketRegime as MarketRegime,
-        timeframe: parsed.data.timeframe,
+        asset: parsed.data.asset && parsed.data.asset.trim().length >= 3 ? parsed.data.asset.toUpperCase() : "NAO LIDO",
+        marketRegime: (parsed.data.marketRegime ?? "REAL") as MarketRegime,
+        timeframe: parsed.data.timeframe ?? "NAO LIDO",
         platform: parsed.data.platform || null,
         secondsElapsed,
-        newsDeclaration: parsed.data.newsDeclaration as NewsStatus,
+        newsDeclaration: (parsed.data.newsDeclaration ?? "UNKNOWN") as NewsStatus,
       },
     });
 

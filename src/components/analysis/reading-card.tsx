@@ -28,7 +28,10 @@ export function ReadingCardView({
   return (
     <section className={`rounded-[1.6rem] border p-6 sm:p-7 ${TONE[model.tone]}`}>
       <p className="text-xs tracking-[0.16em] text-[#9aa3b2] uppercase">
-        {asset} · {timeframe} · {regime === "OTC" ? "OTC" : "Mercado real"}
+        {asset === "NAO LIDO" ? "Par não lido no print" : asset}
+        {" · "}
+        {timeframe === "NAO LIDO" ? "Tempo não lido no print" : timeframe}
+        {regime === "OTC" ? " · OTC" : ""}
       </p>
       <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
         <h2 className={`text-5xl font-semibold tracking-tight ${HEADLINE[model.tone]}`}>{model.headline}</h2>

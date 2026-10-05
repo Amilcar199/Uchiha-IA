@@ -2,11 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { parsePrintText } from "@/engines/vision/print-text";
 
 export function AnalyzeForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [status, setStatus] = useState("Analisar print");
   const [fileName, setFileName] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
@@ -25,11 +27,20 @@ export function AnalyzeForm() {
     setError(null);
     setPending(true);
     const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), 50000);
+    const timer = window.setTimeout(() => controller.abort(), 70000);
     try {
+      setStatus("A preparar a captura...");
       const image = await shrinkScreenshot(file);
-      const body = new FormData(event.currentTarget);
+      setStatus("A ler o par e o tempo no print...");
+      const context = parsePrintText(await readPrintText(image));
+      setStatus("A aplicar a Lógica do Preço...");
+      const body = new FormData();
       body.set("image", image);
+      if (context.asset) body.set("asset", context.asset);
+      if (context.timeframe) body.set("timeframe", context.timeframe);
+      if (context.regime) body.set("marketRegime", context.regime);
+      if (context.platform) body.set("platform", context.platform);
+      body.set("newsDeclaration", "UNKNOWN");
       const response = await fetch("/api/analyses", {
         method: "POST",
         body,
@@ -37,16 +48,21 @@ export function AnalyzeForm() {
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok || !payload?.id) {
-        setError(payload?.error?.message ?? "Não foi possível analisar o gráfico. A captura precisa mostrar as velas verdes e vermelhas.");
+        setError(payload?.error?.message ?? "Não foi possível ler as velas. A captura precisa mostrar os candles verdes e vermelhos.");
         return;
       }
       router.push(`/analyses/${payload.id}`);
       router.refresh();
-    } catch {
-      setError("A leitura não respondeu. Cole a captura com Ctrl+V ou envie um PNG/JPG só da área do gráfico.");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setError("A leitura demorou demais. Envie a captura outra vez.");
+        return;
+      }
+      setError("Não consegui abrir essa captura. Use PNG ou JPG do gráfico.");
     } finally {
       window.clearTimeout(timer);
       setPending(false);
+      setStatus("Analisar print");
     }
   }
 
@@ -74,7 +90,9 @@ export function AnalyzeForm() {
           <UploadIcon />
         </span>
         <span className="mt-4 text-lg font-semibold">{fileName ?? "Solte o print do gráfico"}</span>
-        <span className="mt-2 text-sm text-[#9aa3b2]">PNG, JPG ou WEBP · arraste, escolha o ficheiro ou cole com Ctrl+V</span>
+        <span className="mt-2 max-w-md text-sm text-[#9aa3b2]">
+          Arraste, escolha o ficheiro ou cole com Ctrl+V. O par e o tempo são lidos da imagem.
+        </span>
         <input
           name="image"
           type="file"
@@ -84,63 +102,30 @@ export function AnalyzeForm() {
           onChange={(event) => takeFile(event.target.files?.[0] ?? null)}
         />
       </label>
-
-      <div className="surface grid gap-4 p-5 md:grid-cols-2">
-        <Field label="Ativo / par" name="asset" placeholder="EUR/USD" required />
-        <label className="grid gap-2 text-sm text-[#d4d4d8]">
-          Regime
-          <select name="marketRegime" className="field" required defaultValue="REAL">
-            <option value="REAL">Mercado real</option>
-            <option value="OTC">OTC</option>
-          </select>
-        </label>
-        <label className="grid gap-2 text-sm text-[#d4d4d8]">
-          Timeframe
-          <select name="timeframe" className="field" defaultValue="M1">
-            <option value="M1">M1</option>
-            <option value="M5">M5</option>
-            <option value="M15">M15</option>
-          </select>
-        </label>
-        <Field label="Plataforma" name="platform" placeholder="Quotex, Pocket Option..." />
-        <Field label="Segundos da vela atual" name="secondsElapsed" type="number" placeholder="0 a 60" />
-        <label className="grid gap-2 text-sm text-[#d4d4d8]">
-          Notícia
-          <select name="newsDeclaration" className="field" defaultValue="UNKNOWN">
-            <option value="UNKNOWN">Não informado</option>
-            <option value="FREE">Livre</option>
-            <option value="ATTENTION">Atenção</option>
-            <option value="BLOCKED">Bloqueio de alto impacto</option>
-          </select>
-        </label>
-      </div>
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
       <button type="submit" disabled={pending} className="btn-accent w-fit">
-        {pending ? "A ler o gráfico..." : "Analisar screenshot"}
+        {pending ? status : "Analisar print"}
       </button>
     </form>
   );
 }
 
-function Field({
-  label,
-  name,
-  placeholder,
-  required,
-  type = "text",
-}: {
-  label: string;
-  name: string;
-  placeholder?: string;
-  required?: boolean;
-  type?: string;
-}) {
-  return (
-    <label className="grid gap-2 text-sm text-[#d4d4d8]">
-      {label}
-      <input name={name} type={type} required={required} placeholder={placeholder} className="field" />
-    </label>
-  );
+async function readPrintText(file: File): Promise<string> {
+  try {
+    const { createWorker } = await import("tesseract.js");
+    const worker = await createWorker("eng");
+    try {
+      const result = await Promise.race([
+        worker.recognize(file),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 12000)),
+      ]);
+      return result && "data" in result ? result.data.text : "";
+    } finally {
+      await worker.terminate();
+    }
+  } catch {
+    return "";
+  }
 }
 
 async function shrinkScreenshot(file: File): Promise<File> {
@@ -159,9 +144,9 @@ async function shrinkScreenshot(file: File): Promise<File> {
   }
   context.drawImage(bitmap, 0, 0, width, height);
   bitmap.close();
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
   if (!blob) return file;
-  return new File([blob], "grafico.png", { type: "image/png" });
+  return new File([blob], "grafico.jpg", { type: "image/jpeg" });
 }
 
 function UploadIcon() {

@@ -119,7 +119,7 @@ function extractCandles(classes: PixelClass[], width: number, height: number): {
     return { candles: [], region: null, warnings: ["CHART_REGION_NOT_FOUND"] };
   }
 
-  const runs = groupColumns(columnCounts, minX, maxX);
+  const runs = candleRuns(groupColumns(columnCounts, minX, maxX));
   const regionHeight = maxY - minY || 1;
   const candles: Candle[] = [];
 
@@ -155,6 +155,12 @@ function groupColumns(counts: number[], minX: number, maxX: number): Array<{ sta
 
   if (start >= 0) runs.push({ start, end: maxX });
   return runs.filter((run) => run.end - run.start >= 2);
+}
+
+function candleRuns(runs: Array<{ start: number; end: number }>): Array<{ start: number; end: number }> {
+  const thin = runs.filter((run) => run.end - run.start <= 40);
+  const chosen = thin.length >= 5 ? thin : runs;
+  return chosen.length > 80 ? chosen.slice(-80) : chosen;
 }
 
 function candleFromRun(
